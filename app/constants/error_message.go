@@ -17,6 +17,8 @@ const (
 	OPERATION_NOT_SUPPORTED = "Operation not supported This feature is not available"
 	DUPLICATE_ENTRY         = "The data you're trying to add already exists in our records"
 	CONFLICT                = "There is a conflict with the current state of the resource."
+	FORBIDDEN               = "You don't have permission to access this resource"
+	INSUFFICIENT_LIMIT      = "Insufficient limit, please try again later"
 
 	FOREIGN_KEY_CONSTRAINT_VIOLATION = "Foreign key constraint violation"
 )

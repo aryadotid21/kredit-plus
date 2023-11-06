@@ -23,4 +23,8 @@ const (
 	// Customer
 	CUSTOMER = "/customer"
 	LIMIT    = "/limit"
+
+	// Transaction
+	TRANSACTION = "/transaction"
+	CHECKOUT    = "/checkout"
 )

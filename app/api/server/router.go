@@ -19,6 +19,11 @@ import (
 	customerProfileDBClient "kredit-plus/app/db/repository/customer_profile"
 	customerTokenDBClient "kredit-plus/app/db/repository/customer_token"
 
+	transactionController "kredit-plus/app/controller/transaction"
+	transactionDBClient "kredit-plus/app/db/repository/transaction"
+
+	assetDBClient "kredit-plus/app/db/repository/asset"
+
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -102,6 +107,9 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 		customerProfileDBClient = customerProfileDBClient.NewCustomerProfileRepository(dbConnection)
 		customerTokenDBClient   = customerTokenDBClient.NewCustomerTokenRepository(dbConnection)
 		customerLimitDBClient   = customerLimitDBClient.NewCustomerLimitRepository(dbConnection)
+
+		transactionDBClient = transactionDBClient.NewTransactionRepository(dbConnection)
+		assetDBClient       = assetDBClient.NewAssetRepository(dbConnection)
 	)
 
 	// SERVICES
@@ -113,7 +121,8 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 	var (
 		healthCheckController = healthcheck.NewHealthCheckController()
 
-		customerController = customerController.NewCustomerController(customerDBClient, customerProfileDBClient, customerTokenDBClient, customerLimitDBClient, JWT)
+		customerController    = customerController.NewCustomerController(customerDBClient, customerProfileDBClient, customerTokenDBClient, customerLimitDBClient, JWT)
+		transactionController = transactionController.NewTransactionController(transactionDBClient, customerDBClient, customerLimitDBClient, assetDBClient)
 	)
 
 	v1 := router.Group("/kredit-plus/v1")
@@ -150,6 +159,20 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 			customer.GET(UUID, customerController.GetCustomer)
 			customer.PATCH(UUID, customerController.UpdateCustomer)
 			customer.DELETE(UUID, customerController.DeleteCustomer)
+		}
+
+		// Transaction
+		transaction := v1.Group(TRANSACTION)
+		{
+			transaction.Use(auth.Authenticated(JWT, customerTokenDBClient))
+
+			transaction.POST("", transactionController.CreateTransaction)
+			transaction.GET("", transactionController.GetTransactions)
+			transaction.GET(UUID, transactionController.GetTransaction)
+			transaction.PATCH(UUID, transactionController.UpdateTransaction)
+			transaction.DELETE(UUID, transactionController.DeleteTransaction)
+
+			transaction.POST(CHECKOUT, transactionController.Checkout)
 		}
 	}
 

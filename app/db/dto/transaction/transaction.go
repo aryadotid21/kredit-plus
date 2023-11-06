@@ -9,39 +9,53 @@ import (
 )
 
 const (
-	TABLE_NAME         = "assets"
-	COLUMN_ID          = "id"
-	COLUMN_UUID        = "uuid"
-	COLUMN_NAME        = "name"
-	COLUMN_TYPE        = "type"
-	COLUMN_DESCRIPTION = "description"
-	COLUMN_PRICE       = "price"
-	COLUMN_CREATED_AT  = "created_at"
-	COLUMN_UPDATED_AT  = "updated_at"
+	TABLE_NAME                = "transactions"
+	COLUMN_ID                 = "id"
+	COLUMN_UUID               = "uuid"
+	COLUMN_CUSTOMER_ID        = "customer_id"
+	COLUMN_ASSET_ID           = "asset_id"
+	COLUMN_CONTRACT_NUMBER    = "contract_number"
+	COLUMN_OTR_AMOUNT         = "otr_amount"
+	COLUMN_ADMIN_FEE          = "admin_fee"
+	COLUMN_INSTALLMENT_AMOUNT = "installment_amount"
+	COLUMN_INSTALLMENT_PERIOD = "installment_period"
+	COLUMN_CREATED_AT         = "created_at"
+	COLUMN_UPDATED_AT         = "updated_at"
 )
 
 type Transaction struct {
-	ID          int        `json:"id"`
-	UUID        uuid.UUID  `json:"uuid" form:"uuid"`
-	Name        string     `json:"name" form:"name"`
-	Type        string     `json:"type" form:"type"`
-	Description string     `json:"description" form:"description"`
-	Price       int        `json:"price" form:"price"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
+	ID                int        `json:"id"`
+	UUID              uuid.UUID  `json:"uuid" form:"uuid"`
+	CustomerID        int        `json:"customer_id" form:"customer_id"`
+	AssetID           int        `json:"asset_id" form:"asset_id"`
+	ContractNumber    string     `json:"contract_number" form:"contract_number"`
+	OTRAmount         int        `json:"otr_amount" form:"otr_amount"`
+	AdminFee          int        `json:"admin_fee" form:"admin_fee"`
+	InstallmentAmount int        `json:"installment_amount" form:"installment_amount"`
+	InstallmentPeriod int        `json:"installment_period" form:"installment_period"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         *time.Time `json:"updated_at,omitempty"`
 }
 
 // Validate the fields of a customerToken.
 func (u *Transaction) Validate() error {
-	if u.Name == "" {
+	if u.CustomerID == 0 {
 		return errors.New(constants.INVALID_INPUT)
 	}
 
-	if u.Type == "" {
+	if u.AssetID == 0 {
 		return errors.New(constants.INVALID_INPUT)
 	}
 
-	if u.Price == 0 {
+	if u.ContractNumber == "" {
+		return errors.New(constants.INVALID_INPUT)
+	}
+
+	if u.AdminFee == 0 {
+		return errors.New(constants.INVALID_INPUT)
+	}
+
+	if u.InstallmentPeriod == 0 {
 		return errors.New(constants.INVALID_INPUT)
 	}
 
