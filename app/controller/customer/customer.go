@@ -26,6 +26,8 @@ type ICustomerController interface {
 	GetCustomer(c *gin.Context)
 	UpdateCustomer(c *gin.Context)
 	DeleteCustomer(c *gin.Context)
+
+	Signup(c *gin.Context)
 }
 
 type CustomerController struct {

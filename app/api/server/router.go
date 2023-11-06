@@ -113,6 +113,8 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 		// Customer
 		customer := v1.Group(CUSTOMER)
 		{
+			v1.POST(CUSTOMER+SIGNUP, customerController.Signup)
+
 			customer.POST("", customerController.CreateCustomer)
 			customer.GET("", customerController.GetCustomers)
 			customer.GET(UUID, customerController.GetCustomer)
