@@ -102,7 +102,7 @@ func (u TransactionController) Checkout(c *gin.Context) {
 	}
 
 	// Check if the customer limit exists and is sufficient
-	if customerLimit.ID == 0 || int(customerLimit.LimitAmount) < dataFromBody.InstallmentAmount {
+	if customerLimit.ID == 0 || customerLimit.LimitAmount < dataFromBody.InstallmentAmount {
 		controller.RespondWithError(c, http.StatusForbidden, constants.FORBIDDEN, errors.New(constants.INSUFFICIENT_LIMIT))
 		return
 	}
@@ -121,11 +121,14 @@ func (u TransactionController) Checkout(c *gin.Context) {
 	transaction := transactionDBModels.Transaction{
 		UUID:              uuid,
 		CustomerID:        user.ID,
+		AssetID:           nil,
 		ContractNumber:    dataFromBody.ContractNumber,
 		OTRAmount:         dataFromBody.OTRAmount,
 		AdminFee:          dataFromBody.AdminFee,
 		InstallmentAmount: dataFromBody.InstallmentAmount,
 		InstallmentPeriod: dataFromBody.InstallmentPeriod,
+		InterestAmount:    dataFromBody.InterestAmount,
+		SalesChannel:      dataFromBody.SalesChannel,
 		CreatedAt:         now,
 		UpdatedAt:         &now,
 	}
@@ -159,6 +162,12 @@ func (u TransactionController) Checkout(c *gin.Context) {
 	}
 
 	if err := u.AssetDBClient.Create(ctx, &asset); err != nil {
+		if err := u.TransactionDBClient.Delete(ctx, map[string]interface{}{transactionDBModels.COLUMN_UUID: transaction.UUID}); err != nil {
+			log.Error(constants.INTERNAL_SERVER_ERROR, err)
+			controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+			return
+		}
+
 		log.Error(constants.INTERNAL_SERVER_ERROR, err)
 		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
 		return
@@ -166,7 +175,7 @@ func (u TransactionController) Checkout(c *gin.Context) {
 
 	// Update the customer's limit
 	patcher := map[string]interface{}{
-		customerLimitDBModels.COLUMN_LIMIT_AMOUNT: customerLimit.LimitAmount - float32(dataFromBody.InstallmentAmount),
+		customerLimitDBModels.COLUMN_LIMIT_AMOUNT: customerLimit.LimitAmount - dataFromBody.InstallmentAmount,
 		customerLimitDBModels.COLUMN_UPDATED_AT:   time.Now(),
 	}
 
@@ -197,7 +206,7 @@ func (u TransactionController) Checkout(c *gin.Context) {
 		return
 	}
 
-	transaction.AssetID = asset.ID
+	transaction.AssetID = &asset.ID
 
 	controller.RespondWithSuccess(c, http.StatusOK, constants.CREATED_SUCCESSFULLY, transaction, nil)
 }
