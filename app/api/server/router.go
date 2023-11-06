@@ -14,6 +14,7 @@ import (
 	customerController "kredit-plus/app/controller/customer"
 	customerDBClient "kredit-plus/app/db/repository/customer"
 	customerProfileDBClient "kredit-plus/app/db/repository/customer_profile"
+	customerTokenDBClient "kredit-plus/app/db/repository/customer_token"
 
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
@@ -96,6 +97,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 	var (
 		customerDBClient        = customerDBClient.NewCustomerRepository(dbConnection)
 		customerProfileDBClient = customerProfileDBClient.NewCustomerProfileRepository(dbConnection)
+		customerTokenDBClient   = customerTokenDBClient.NewCustomerTokenRepository(dbConnection)
 	)
 
 	// SERVICES
@@ -105,7 +107,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 	var (
 		healthCheckController = healthcheck.NewHealthCheckController()
 
-		customerController = customerController.NewCustomerController(customerDBClient, customerProfileDBClient)
+		customerController = customerController.NewCustomerController(customerDBClient, customerProfileDBClient, customerTokenDBClient)
 	)
 
 	v1 := router.Group("/kredit-plus/v1")
@@ -121,6 +123,10 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 			customer.GET(PROFILE, customerController.GetCustomerProfile)
 			customer.PATCH(PROFILE, customerController.UpdateCustomerProfile)
 			customer.DELETE(PROFILE, customerController.DeleteCustomerProfile)
+
+			customer.GET(TOKEN, customerController.GetCustomerTokens)
+			customer.GET(TOKEN+ID, customerController.GetCustomerToken)
+			customer.DELETE(TOKEN, customerController.DeleteCustomerToken)
 
 			customer.POST("", customerController.CreateCustomer)
 			customer.GET("", customerController.GetCustomers)

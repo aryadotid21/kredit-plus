@@ -11,6 +11,7 @@ import (
 	customerDB "kredit-plus/app/db/repository/customer"
 
 	customerProfileDB "kredit-plus/app/db/repository/customer_profile"
+	customerTokenDB "kredit-plus/app/db/repository/customer_token"
 
 	"kredit-plus/app/service/correlation"
 	"kredit-plus/app/service/dto/request"
@@ -34,18 +35,24 @@ type ICustomerController interface {
 	UpdateCustomerProfile(c *gin.Context)
 	DeleteCustomerProfile(c *gin.Context)
 
+	GetCustomerTokens(c *gin.Context)
+	GetCustomerToken(c *gin.Context)
+	DeleteCustomerToken(c *gin.Context)
+
 	Signup(c *gin.Context)
 }
 
 type CustomerController struct {
 	CustomerDBClient        customerDB.ICustomerRepository
 	CustomerProfileDBClient customerProfileDB.ICustomerProfileRepository
+	CustomerTokenDBClient   customerTokenDB.ICustomerTokenRepository
 }
 
-func NewCustomerController(CustomerClient customerDB.ICustomerRepository, CustomerProfileClient customerProfileDB.ICustomerProfileRepository) ICustomerController {
+func NewCustomerController(CustomerClient customerDB.ICustomerRepository, CustomerProfileClient customerProfileDB.ICustomerProfileRepository, CustomerTokenClient customerTokenDB.ICustomerTokenRepository) ICustomerController {
 	return &CustomerController{
 		CustomerDBClient:        CustomerClient,
 		CustomerProfileDBClient: CustomerProfileClient,
+		CustomerTokenDBClient:   CustomerTokenClient,
 	}
 }
 
