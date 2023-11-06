@@ -13,6 +13,7 @@ import (
 	customerProfileDB "kredit-plus/app/db/repository/customer_profile"
 	customerTokenDB "kredit-plus/app/db/repository/customer_token"
 
+	"kredit-plus/app/api/middleware/jwt"
 	"kredit-plus/app/service/correlation"
 	"kredit-plus/app/service/dto/request"
 	"kredit-plus/app/service/logger"
@@ -40,19 +41,23 @@ type ICustomerController interface {
 	DeleteCustomerToken(c *gin.Context)
 
 	Signup(c *gin.Context)
+	Signin(c *gin.Context)
 }
 
 type CustomerController struct {
 	CustomerDBClient        customerDB.ICustomerRepository
 	CustomerProfileDBClient customerProfileDB.ICustomerProfileRepository
 	CustomerTokenDBClient   customerTokenDB.ICustomerTokenRepository
+
+	JWT jwt.IJWTService
 }
 
-func NewCustomerController(CustomerClient customerDB.ICustomerRepository, CustomerProfileClient customerProfileDB.ICustomerProfileRepository, CustomerTokenClient customerTokenDB.ICustomerTokenRepository) ICustomerController {
+func NewCustomerController(CustomerClient customerDB.ICustomerRepository, CustomerProfileClient customerProfileDB.ICustomerProfileRepository, CustomerTokenClient customerTokenDB.ICustomerTokenRepository, JWT jwt.IJWTService) ICustomerController {
 	return &CustomerController{
 		CustomerDBClient:        CustomerClient,
 		CustomerProfileDBClient: CustomerProfileClient,
 		CustomerTokenDBClient:   CustomerTokenClient,
+		JWT:                     JWT,
 	}
 }
 

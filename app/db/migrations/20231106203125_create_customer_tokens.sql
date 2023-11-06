@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE customer_tokens (
     id serial PRIMARY KEY,
-    customer_id integer NOT NULL REFERENCES customers(id),
+    customer_id integer UNIQUE NOT NULL REFERENCES customers(id),
     access_token text NOT NULL,
     refresh_token text NOT NULL,
     user_agent varchar(255),

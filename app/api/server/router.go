@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"kredit-plus/app/api/middleware/jwt"
 	loggerMiddleware "kredit-plus/app/api/middleware/log"
 
 	customerController "kredit-plus/app/controller/customer"
@@ -101,13 +102,15 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 	)
 
 	// SERVICES
-	var ()
+	var (
+		JWT = jwt.NewJWTService()
+	)
 
 	// Controller
 	var (
 		healthCheckController = healthcheck.NewHealthCheckController()
 
-		customerController = customerController.NewCustomerController(customerDBClient, customerProfileDBClient, customerTokenDBClient)
+		customerController = customerController.NewCustomerController(customerDBClient, customerProfileDBClient, customerTokenDBClient, JWT)
 	)
 
 	v1 := router.Group("/kredit-plus/v1")
@@ -118,6 +121,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 		customer := v1.Group(CUSTOMER)
 		{
 			v1.POST(CUSTOMER+SIGNUP, customerController.Signup)
+			v1.POST(CUSTOMER+SIGNIN, customerController.Signin)
 
 			customer.POST(PROFILE, customerController.CreateCustomerProfile)
 			customer.GET(PROFILE, customerController.GetCustomerProfile)
