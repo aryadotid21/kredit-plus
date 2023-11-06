@@ -9,6 +9,9 @@ const (
 	AUTH   = "/auth"
 	SIGNUP = "/signup"
 
+	// Profile
+	PROFILE = "/profile"
+
 	// Health Check
 	HEALTH_CHECK = "/health-check"
 

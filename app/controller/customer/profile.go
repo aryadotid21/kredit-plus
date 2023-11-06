@@ -5,142 +5,62 @@ import (
 	"fmt"
 	"kredit-plus/app/constants"
 	"kredit-plus/app/controller"
-	"net/http"
-
 	customerDBModels "kredit-plus/app/db/dto/customer"
-	customerDB "kredit-plus/app/db/repository/customer"
-
-	customerProfileDB "kredit-plus/app/db/repository/customer_profile"
-
+	customerProfileDBModels "kredit-plus/app/db/dto/customer_profile"
 	"kredit-plus/app/service/correlation"
-	"kredit-plus/app/service/dto/request"
 	"kredit-plus/app/service/logger"
-	"kredit-plus/app/service/util"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-type ICustomerController interface {
-	CreateCustomer(c *gin.Context)
-	GetCustomers(c *gin.Context)
-	GetCustomer(c *gin.Context)
-	UpdateCustomer(c *gin.Context)
-	DeleteCustomer(c *gin.Context)
-
-	CreateCustomerProfile(c *gin.Context)
-	GetCustomerProfile(c *gin.Context)
-	UpdateCustomerProfile(c *gin.Context)
-	DeleteCustomerProfile(c *gin.Context)
-
-	Signup(c *gin.Context)
-}
-
-type CustomerController struct {
-	CustomerDBClient        customerDB.ICustomerRepository
-	CustomerProfileDBClient customerProfileDB.ICustomerProfileRepository
-}
-
-func NewCustomerController(CustomerClient customerDB.ICustomerRepository, CustomerProfileClient customerProfileDB.ICustomerProfileRepository) ICustomerController {
-	return &CustomerController{
-		CustomerDBClient:        CustomerClient,
-		CustomerProfileDBClient: CustomerProfileClient,
-	}
-}
-
-func (u CustomerController) CreateCustomer(c *gin.Context) {
+func (u CustomerController) CreateCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	var dataFromBody customerDBModels.Customer
+	var dataFromBody customerProfileDBModels.CustomerProfile
 	if err := c.BindJSON(&dataFromBody); err != nil {
 		log.Error(constants.BAD_REQUEST, err)
 		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, err)
 		return
 	}
 
-	hashedPassword, err := util.GenerateHash(dataFromBody.Password)
-	if err != nil {
-		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
-		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
-		return
-	}
-
-	uuid, err := uuid.NewRandom()
-	if err != nil {
-		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
-		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
-		return
-	}
-
 	now := time.Now()
 
-	customer := customerDBModels.Customer{
-		UUID:      uuid,
-		Email:     dataFromBody.Email,
-		Phone:     dataFromBody.Phone,
-		Password:  hashedPassword,
-		CreatedAt: now,
-		UpdatedAt: &now,
+	customerProfile := customerProfileDBModels.CustomerProfile{
+		CustomerID:   dataFromBody.CustomerID,
+		NIK:          dataFromBody.NIK,
+		FullName:     dataFromBody.FullName,
+		LegalName:    dataFromBody.LegalName,
+		PlaceOfBirth: dataFromBody.PlaceOfBirth,
+		DateOfBirth:  dataFromBody.DateOfBirth,
+		Salary:       dataFromBody.Salary,
+		KtpImage:     dataFromBody.KtpImage,
+		SelfieImage:  dataFromBody.SelfieImage,
+		CreatedAt:    now,
+		UpdatedAt:    &now,
 	}
 
-	if err := customer.Validate(); err != nil {
+	if err := customerProfile.Validate(); err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.BAD_REQUEST, err)
 		log.Error(errorMsg)
 		controller.RespondWithError(c, http.StatusBadRequest, errorMsg, err)
 		return
 	}
 
-	if err = u.CustomerDBClient.Create(ctx, &customer); err != nil {
+	if err := u.CustomerProfileDBClient.Create(ctx, &customerProfile); err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
 		log.Error(errorMsg)
 		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
 		return
 	}
 
-	customer.Password = ""
-
-	controller.RespondWithSuccess(c, http.StatusOK, constants.CREATED_SUCCESSFULLY, customer, nil)
+	controller.RespondWithSuccess(c, http.StatusOK, constants.CREATED_SUCCESSFULLY, customerProfile, nil)
 }
 
-func (u CustomerController) GetCustomers(c *gin.Context) {
-	ctx := correlation.WithReqContext(c)
-	log := logger.Logger(ctx)
-
-	var pagination request.Pagination
-
-	if err := c.ShouldBindQuery(&pagination); err != nil {
-		errorMsg := fmt.Sprintf("%s: %v", constants.BAD_REQUEST, err)
-		log.Error(errorMsg)
-		controller.RespondWithError(c, http.StatusBadRequest, errorMsg, err)
-		return
-	}
-
-	pagination.Validate()
-
-	f := map[string]interface{}{}
-
-	if c.Query(customerDBModels.COLUMN_EMAIL) != "" {
-		f[customerDBModels.COLUMN_EMAIL] = c.Query(customerDBModels.COLUMN_EMAIL)
-	}
-
-	if c.Query(customerDBModels.COLUMN_PHONE) != "" {
-		f[customerDBModels.COLUMN_PHONE] = c.Query(customerDBModels.COLUMN_PHONE)
-	}
-
-	customers, paginationResponse, err := u.CustomerDBClient.List(ctx, pagination, f)
-	if err != nil {
-		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
-		log.Error(errorMsg)
-		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
-		return
-	}
-
-	controller.RespondWithSuccess(c, http.StatusOK, constants.GET_SUCCESSFULLY, customers, &paginationResponse)
-}
-
-func (u CustomerController) GetCustomer(c *gin.Context) {
+func (u CustomerController) GetCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
@@ -175,7 +95,7 @@ func (u CustomerController) GetCustomer(c *gin.Context) {
 	controller.RespondWithSuccess(c, http.StatusOK, constants.GET_SUCCESSFULLY, r, nil)
 }
 
-func (u CustomerController) UpdateCustomer(c *gin.Context) {
+func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
@@ -190,7 +110,7 @@ func (u CustomerController) UpdateCustomer(c *gin.Context) {
 		return
 	}
 
-	var dataFromBody customerDBModels.Customer
+	var dataFromBody customerProfileDBModels.CustomerProfile
 	if err := c.ShouldBindJSON(&dataFromBody); err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.BAD_REQUEST, err)
 		log.Error(errorMsg)
@@ -200,12 +120,36 @@ func (u CustomerController) UpdateCustomer(c *gin.Context) {
 
 	patcher := make(map[string]interface{})
 
-	if dataFromBody.Email != "" {
-		patcher[customerDBModels.COLUMN_EMAIL] = dataFromBody.Email
+	if dataFromBody.NIK != "" {
+		patcher[customerProfileDBModels.COLUMN_NIK] = dataFromBody.NIK
 	}
 
-	if dataFromBody.Phone != "" {
-		patcher[customerDBModels.COLUMN_PHONE] = dataFromBody.Phone
+	if dataFromBody.FullName != "" {
+		patcher[customerProfileDBModels.COLUMN_FULL_NAME] = dataFromBody.FullName
+	}
+
+	if dataFromBody.LegalName != "" {
+		patcher[customerProfileDBModels.COLUMN_LEGAL_NAME] = dataFromBody.LegalName
+	}
+
+	if dataFromBody.PlaceOfBirth != "" {
+		patcher[customerProfileDBModels.COLUMN_PLACE_OF_BIRTH] = dataFromBody.PlaceOfBirth
+	}
+
+	if !dataFromBody.DateOfBirth.IsZero() {
+		patcher[customerProfileDBModels.COLUMN_DATE_OF_BIRTH] = dataFromBody.DateOfBirth
+	}
+
+	if dataFromBody.Salary != 0 {
+		patcher[customerProfileDBModels.COLUMN_SALARY] = dataFromBody.Salary
+	}
+
+	if dataFromBody.KtpImage != "" {
+		patcher[customerProfileDBModels.COLUMN_KTP_IMAGE] = dataFromBody.KtpImage
+	}
+
+	if dataFromBody.SelfieImage != "" {
+		patcher[customerProfileDBModels.COLUMN_SELFIE_IMAGE] = dataFromBody.SelfieImage
 	}
 
 	patcher[customerDBModels.COLUMN_UPDATED_AT] = time.Now()
@@ -239,7 +183,7 @@ func (u CustomerController) UpdateCustomer(c *gin.Context) {
 	controller.RespondWithSuccess(c, http.StatusAccepted, constants.UPDATED_SUCCESSFULLY, customer, nil)
 }
 
-func (u CustomerController) DeleteCustomer(c *gin.Context) {
+func (u CustomerController) DeleteCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
