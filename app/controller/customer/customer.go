@@ -43,6 +43,7 @@ type ICustomerController interface {
 	Signup(c *gin.Context)
 	Signin(c *gin.Context)
 	Signout(c *gin.Context)
+	RefreshToken(c *gin.Context)
 }
 
 type CustomerController struct {

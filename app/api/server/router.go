@@ -124,6 +124,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 			v1.POST(CUSTOMER+SIGNUP, customerController.Signup)
 			v1.POST(CUSTOMER+SIGNIN, customerController.Signin)
 			v1.POST(CUSTOMER+SIGNOUT, auth.Authenticated(JWT, customerTokenDBClient), customerController.Signout)
+			v1.POST(CUSTOMER+REFRESH_TOKEN, customerController.RefreshToken)
 
 			customer.Use(auth.Authenticated(JWT, customerTokenDBClient))
 

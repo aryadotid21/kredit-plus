@@ -187,3 +187,79 @@ func (u CustomerController) Signout(c *gin.Context) {
 
 	controller.RespondWithSuccess(c, http.StatusOK, constants.LOGOUT_SUCCESSFULLY, nil, nil)
 }
+
+func (u CustomerController) RefreshToken(c *gin.Context) {
+	ctx := correlation.WithReqContext(c)
+	log := logger.Logger(ctx)
+
+	// Parse the refresh token from the request
+	var refreshTokenRequest customerRequest.RefreshTokenRequest
+	if err := c.BindJSON(&refreshTokenRequest); err != nil {
+		log.Error(constants.BAD_REQUEST, err)
+		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, err)
+		return
+	}
+
+	// Validate the request body
+	if err := refreshTokenRequest.Validate(); err != nil {
+		log.Error(constants.BAD_REQUEST, err)
+		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, err)
+		return
+	}
+
+	// Get the token from the database to check if it exists and is still valid
+	token, err := u.CustomerTokenDBClient.Get(ctx, map[string]interface{}{customerTokenDBModels.COLUMN_REFRESH_TOKEN: refreshTokenRequest.RefreshToken})
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	if token.ID == 0 {
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		return
+	}
+
+	if token.RefreshTokenExpiredAt.Before(time.Now()) {
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		return
+	}
+
+	// Parse the refresh token from the request
+	refreshToken := refreshTokenRequest.RefreshToken
+
+	// Use the JWT service to refresh the token
+	tokenDetails, err := u.JWT.RefreshToken(ctx, refreshToken)
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	// Delete the user's previous token from the database
+	if err := u.CustomerTokenDBClient.Delete(ctx, map[string]interface{}{customerTokenDBModels.COLUMN_CUSTOMER_ID: token.CustomerID}); err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	// Update the user's token in the database with the generated JWT token
+	tokenRecord := customerTokenDBModels.CustomerToken{
+		CustomerID:            token.CustomerID,
+		AccessToken:           tokenDetails.AccessToken,
+		RefreshToken:          tokenDetails.RefreshToken,
+		UserAgent:             c.Request.UserAgent(),
+		IPAddress:             c.ClientIP(),
+		AccessTokenExpiredAt:  time.Unix(tokenDetails.AtExpires, 0),
+		RefreshTokenExpiredAt: time.Unix(tokenDetails.RtExpires, 0),
+	}
+
+	if err := u.CustomerTokenDBClient.Create(ctx, &tokenRecord); err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	// Respond with the new token details
+	controller.RespondWithSuccess(c, http.StatusOK, constants.UPDATED_SUCCESSFULLY, tokenDetails, nil)
+}

@@ -7,11 +7,12 @@ const (
 	ID   = "/:id"
 
 	// Auth
-	AUTH    = "/auth"
-	TOKEN   = "/token"
-	SIGNUP  = "/signup"
-	SIGNIN  = "/signin"
-	SIGNOUT = "/signout"
+	AUTH          = "/auth"
+	TOKEN         = "/token"
+	SIGNUP        = "/signup"
+	SIGNIN        = "/signin"
+	SIGNOUT       = "/signout"
+	REFRESH_TOKEN = "/refresh-token"
 
 	// Profile
 	PROFILE = "/profile"

@@ -28,3 +28,15 @@ func (s *SignInRequest) Validate() error {
 
 	return nil
 }
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+func (r *RefreshTokenRequest) Validate() error {
+	if r.RefreshToken == "" {
+		return errors.New("refresh_token is required")
+	}
+
+	return nil
+}
