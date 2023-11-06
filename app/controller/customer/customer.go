@@ -10,6 +10,7 @@ import (
 	customerDBModels "kredit-plus/app/db/dto/customer"
 	customerDB "kredit-plus/app/db/repository/customer"
 
+	customerLimitDB "kredit-plus/app/db/repository/customer_limit"
 	customerProfileDB "kredit-plus/app/db/repository/customer_profile"
 	customerTokenDB "kredit-plus/app/db/repository/customer_token"
 
@@ -40,6 +41,12 @@ type ICustomerController interface {
 	GetCustomerToken(c *gin.Context)
 	DeleteCustomerToken(c *gin.Context)
 
+	CreateCustomerLimit(c *gin.Context)
+	GetCustomerLimits(c *gin.Context)
+	GetCustomerLimit(c *gin.Context)
+	UpdateCustomerLimit(c *gin.Context)
+	DeleteCustomerLimit(c *gin.Context)
+
 	Signup(c *gin.Context)
 	Signin(c *gin.Context)
 	Signout(c *gin.Context)
@@ -50,15 +57,17 @@ type CustomerController struct {
 	CustomerDBClient        customerDB.ICustomerRepository
 	CustomerProfileDBClient customerProfileDB.ICustomerProfileRepository
 	CustomerTokenDBClient   customerTokenDB.ICustomerTokenRepository
+	CustomerLimitDBClient   customerLimitDB.ICustomerLimitRepository
 
 	JWT jwt.IJWTService
 }
 
-func NewCustomerController(CustomerClient customerDB.ICustomerRepository, CustomerProfileClient customerProfileDB.ICustomerProfileRepository, CustomerTokenClient customerTokenDB.ICustomerTokenRepository, JWT jwt.IJWTService) ICustomerController {
+func NewCustomerController(CustomerClient customerDB.ICustomerRepository, CustomerProfileClient customerProfileDB.ICustomerProfileRepository, CustomerTokenClient customerTokenDB.ICustomerTokenRepository, CustomerLimitClient customerLimitDB.ICustomerLimitRepository, JWT jwt.IJWTService) ICustomerController {
 	return &CustomerController{
 		CustomerDBClient:        CustomerClient,
 		CustomerProfileDBClient: CustomerProfileClient,
 		CustomerTokenDBClient:   CustomerTokenClient,
+		CustomerLimitDBClient:   CustomerLimitClient,
 		JWT:                     JWT,
 	}
 }

@@ -15,6 +15,7 @@ import (
 
 	customerController "kredit-plus/app/controller/customer"
 	customerDBClient "kredit-plus/app/db/repository/customer"
+	customerLimitDBClient "kredit-plus/app/db/repository/customer_limit"
 	customerProfileDBClient "kredit-plus/app/db/repository/customer_profile"
 	customerTokenDBClient "kredit-plus/app/db/repository/customer_token"
 
@@ -100,6 +101,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 		customerDBClient        = customerDBClient.NewCustomerRepository(dbConnection)
 		customerProfileDBClient = customerProfileDBClient.NewCustomerProfileRepository(dbConnection)
 		customerTokenDBClient   = customerTokenDBClient.NewCustomerTokenRepository(dbConnection)
+		customerLimitDBClient   = customerLimitDBClient.NewCustomerLimitRepository(dbConnection)
 	)
 
 	// SERVICES
@@ -111,7 +113,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 	var (
 		healthCheckController = healthcheck.NewHealthCheckController()
 
-		customerController = customerController.NewCustomerController(customerDBClient, customerProfileDBClient, customerTokenDBClient, JWT)
+		customerController = customerController.NewCustomerController(customerDBClient, customerProfileDBClient, customerTokenDBClient, customerLimitDBClient, JWT)
 	)
 
 	v1 := router.Group("/kredit-plus/v1")
@@ -132,6 +134,12 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 			customer.GET(PROFILE, customerController.GetCustomerProfile)
 			customer.PATCH(PROFILE, customerController.UpdateCustomerProfile)
 			customer.DELETE(PROFILE, customerController.DeleteCustomerProfile)
+
+			customer.POST(LIMIT, customerController.CreateCustomerLimit)
+			customer.GET(LIMIT, customerController.GetCustomerLimits)
+			customer.GET(LIMIT+ID, customerController.GetCustomerLimit)
+			customer.PATCH(LIMIT+ID, customerController.UpdateCustomerLimit)
+			customer.DELETE(LIMIT+ID, customerController.DeleteCustomerLimit)
 
 			customer.GET(TOKEN, customerController.GetCustomerTokens)
 			customer.GET(TOKEN+ID, customerController.GetCustomerToken)

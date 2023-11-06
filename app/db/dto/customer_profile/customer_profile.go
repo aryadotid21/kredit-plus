@@ -23,7 +23,7 @@ const (
 )
 
 type CustomerProfile struct {
-	ID           int        `json:"-"`
+	ID           int        `json:"id"`
 	CustomerID   int        `json:"customer_id" form:"customer_id"`
 	NIK          string     `json:"nik" form:"nik"`
 	FullName     string     `json:"full_name" form:"full_name"`

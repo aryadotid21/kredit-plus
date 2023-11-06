@@ -22,4 +22,5 @@ const (
 
 	// Customer
 	CUSTOMER = "/customer"
+	LIMIT    = "/limit"
 )

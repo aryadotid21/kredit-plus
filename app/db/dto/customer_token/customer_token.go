@@ -21,7 +21,7 @@ const (
 )
 
 type CustomerToken struct {
-	ID                    int        `json:"-"`
+	ID                    int        `json:"id"`
 	CustomerID            int        `json:"customer_id" form:"customer_id"`
 	AccessToken           string     `json:"access_token" form:"access_token"`
 	RefreshToken          string     `json:"refresh_token" form:"refresh_token"`
