@@ -157,3 +157,33 @@ func (u CustomerController) Signin(c *gin.Context) {
 
 	controller.RespondWithSuccess(c, http.StatusOK, constants.LOGIN_SUCCESSFULLY, token, nil)
 }
+
+func (u CustomerController) Signout(c *gin.Context) {
+	ctx := correlation.WithReqContext(c)
+	log := logger.Logger(ctx)
+
+	// Get the user from the context
+	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
+	if !exist {
+		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		return
+	}
+
+	// Get the user from the database
+	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	// Delete the user's token from the database
+	if err := u.CustomerTokenDBClient.Delete(ctx, map[string]interface{}{customerTokenDBModels.COLUMN_CUSTOMER_ID: user.ID}); err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	controller.RespondWithSuccess(c, http.StatusOK, constants.LOGOUT_SUCCESSFULLY, nil, nil)
+}

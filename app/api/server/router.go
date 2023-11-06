@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"kredit-plus/app/api/middleware/auth"
 	"kredit-plus/app/api/middleware/jwt"
 	loggerMiddleware "kredit-plus/app/api/middleware/log"
 
@@ -122,6 +123,9 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 		{
 			v1.POST(CUSTOMER+SIGNUP, customerController.Signup)
 			v1.POST(CUSTOMER+SIGNIN, customerController.Signin)
+			v1.POST(CUSTOMER+SIGNOUT, auth.Authenticated(JWT, customerTokenDBClient), customerController.Signout)
+
+			customer.Use(auth.Authenticated(JWT, customerTokenDBClient))
 
 			customer.POST(PROFILE, customerController.CreateCustomerProfile)
 			customer.GET(PROFILE, customerController.GetCustomerProfile)
