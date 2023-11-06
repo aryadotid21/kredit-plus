@@ -41,10 +41,10 @@ func (r *Pagination) Validate() error {
 	}
 
 	if r.Sort == "" {
-		r.Sort = "DESC"
+		r.Sort = "created_at"
 	}
 	if r.Order == "" {
-		r.Order = "created_at"
+		r.Order = "ASC"
 	}
 	return nil
 }

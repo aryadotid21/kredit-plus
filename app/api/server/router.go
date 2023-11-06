@@ -11,6 +11,9 @@ import (
 
 	loggerMiddleware "kredit-plus/app/api/middleware/log"
 
+	customerController "kredit-plus/app/controller/customer"
+	customerDBClient "kredit-plus/app/db/repository/customer"
+
 	helmet "github.com/danielkov/gin-helmet"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -89,7 +92,9 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 	router.Use(loggerMiddleware.LoggerMiddleware())
 
 	// DB Clients
-	var ()
+	var (
+		customerDBClient = customerDBClient.NewCustomerRepository(dbConnection)
+	)
 
 	// SERVICES
 	var ()
@@ -97,11 +102,23 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 	// Controller
 	var (
 		healthCheckController = healthcheck.NewHealthCheckController()
+
+		customerController = customerController.NewCustomerController(customerDBClient)
 	)
 
 	v1 := router.Group("/kredit-plus/v1")
 	{
 		v1.GET(HEALTH_CHECK, healthCheckController.HealthCheck)
+
+		// Customer
+		customer := v1.Group(CUSTOMER)
+		{
+			customer.POST("", customerController.CreateCustomer)
+			customer.GET("", customerController.GetCustomers)
+			customer.GET(UUID, customerController.GetCustomer)
+			customer.PATCH(UUID, customerController.UpdateCustomer)
+			customer.DELETE(UUID, customerController.DeleteCustomer)
+		}
 	}
 
 	return router

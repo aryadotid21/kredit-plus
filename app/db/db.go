@@ -81,7 +81,7 @@ func Init(ctx context.Context) (db *gorm.DB, err error) {
 	}
 
 	// Set the migrations directory and database configuration for goose
-	workingDir = workingDir + "/app/db/migrations"
+	workingDir = workingDir + "/kredit-plus/app/db/migrations"
 	migrateConf := &goose.DBConf{
 		MigrationsDir: workingDir,
 		Driver: goose.DBDriver{
@@ -124,5 +124,5 @@ type DBService struct {
 
 // GetDB : Get an instance of DB to connect to the database connection pool
 func (d DBService) GetDB() *gorm.DB {
-	return d.DB
+	return d.DB.Debug()
 }
