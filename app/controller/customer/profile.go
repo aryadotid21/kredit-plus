@@ -13,12 +13,27 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 func (u CustomerController) CreateCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
+
+	// Get the user from the context
+	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
+	if !exist {
+		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		return
+	}
+
+	// Get the user from the database
+	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
 
 	var dataFromBody customerProfileDBModels.CustomerProfile
 	if err := c.BindJSON(&dataFromBody); err != nil {
@@ -30,7 +45,7 @@ func (u CustomerController) CreateCustomerProfile(c *gin.Context) {
 	now := time.Now()
 
 	customerProfile := customerProfileDBModels.CustomerProfile{
-		CustomerID:   dataFromBody.CustomerID,
+		CustomerID:   user.ID,
 		NIK:          dataFromBody.NIK,
 		FullName:     dataFromBody.FullName,
 		LegalName:    dataFromBody.LegalName,
@@ -50,6 +65,13 @@ func (u CustomerController) CreateCustomerProfile(c *gin.Context) {
 		return
 	}
 
+	if err := u.CustomerProfileDBClient.Delete(ctx, map[string]interface{}{customerProfileDBModels.COLUMN_CUSTOMER_ID: user.ID}); err != nil {
+		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
+		log.Error(errorMsg)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
 	if err := u.CustomerProfileDBClient.Create(ctx, &customerProfile); err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
 		log.Error(errorMsg)
@@ -64,22 +86,27 @@ func (u CustomerController) GetCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	id := c.Param("uuid")
-	if id == "" {
-		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
+	// Get the user from the context
+	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
+	if !exist {
+		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
 		return
 	}
 
-	if _, err := uuid.Parse(id); err != nil {
-		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
+	// Get the user from the database
+	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
 		return
 	}
 
 	filter := map[string]interface{}{
-		customerDBModels.COLUMN_UUID: id,
+		customerProfileDBModels.COLUMN_CUSTOMER_ID: user.ID,
 	}
 
-	r, err := u.CustomerDBClient.Get(ctx, filter)
+	r, err := u.CustomerProfileDBClient.Get(ctx, filter)
 	if err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
 		log.Error(errorMsg)
@@ -87,7 +114,7 @@ func (u CustomerController) GetCustomerProfile(c *gin.Context) {
 		return
 	}
 
-	if r.UUID == uuid.Nil {
+	if r.ID == 0 {
 		controller.RespondWithError(c, http.StatusNotFound, constants.NOT_FOUND, errors.New(constants.RESOURCE_NOT_FOUND))
 		return
 	}
@@ -99,14 +126,19 @@ func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	id := c.Param("uuid")
-	if id == "" {
-		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
+	// Get the user from the context
+	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
+	if !exist {
+		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
 		return
 	}
 
-	if _, err := uuid.Parse(id); err != nil {
-		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
+	// Get the user from the database
+	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
 		return
 	}
 
@@ -136,7 +168,7 @@ func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
 		patcher[customerProfileDBModels.COLUMN_PLACE_OF_BIRTH] = dataFromBody.PlaceOfBirth
 	}
 
-	if !dataFromBody.DateOfBirth.IsZero() {
+	if dataFromBody.DateOfBirth != "" {
 		patcher[customerProfileDBModels.COLUMN_DATE_OF_BIRTH] = dataFromBody.DateOfBirth
 	}
 
@@ -155,17 +187,17 @@ func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
 	patcher[customerDBModels.COLUMN_UPDATED_AT] = time.Now()
 
 	filter := map[string]interface{}{
-		customerDBModels.COLUMN_UUID: id,
+		customerProfileDBModels.COLUMN_CUSTOMER_ID: user.ID,
 	}
 
-	if err := u.CustomerDBClient.Update(ctx, filter, patcher); err != nil {
+	if err := u.CustomerProfileDBClient.Update(ctx, filter, patcher); err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
 		log.Error(errorMsg)
 		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
 		return
 	}
 
-	customer, err := u.CustomerDBClient.Get(ctx, filter)
+	customer, err := u.CustomerProfileDBClient.Get(ctx, filter)
 	if err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
 		log.Error(errorMsg)
@@ -173,12 +205,10 @@ func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
 		return
 	}
 
-	if customer.UUID == uuid.Nil {
+	if customer.ID == 0 {
 		controller.RespondWithError(c, http.StatusNotFound, constants.NOT_FOUND, errors.New(constants.RESOURCE_NOT_FOUND))
 		return
 	}
-
-	customer.Password = ""
 
 	controller.RespondWithSuccess(c, http.StatusAccepted, constants.UPDATED_SUCCESSFULLY, customer, nil)
 }
@@ -187,22 +217,27 @@ func (u CustomerController) DeleteCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	id := c.Param(customerDBModels.COLUMN_UUID)
-	if id == "" {
-		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
+	// Get the user from the context
+	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
+	if !exist {
+		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
 		return
 	}
 
-	if _, err := uuid.Parse(id); err != nil {
-		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
+	// Get the user from the database
+	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
 		return
 	}
 
 	filter := map[string]interface{}{
-		customerDBModels.COLUMN_UUID: id,
+		customerProfileDBModels.COLUMN_CUSTOMER_ID: user.ID,
 	}
 
-	if err := u.CustomerDBClient.Delete(ctx, filter); err != nil {
+	if err := u.CustomerProfileDBClient.Delete(ctx, filter); err != nil {
 		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
 		log.Error(errorMsg)
 		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)

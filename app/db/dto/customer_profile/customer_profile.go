@@ -23,14 +23,14 @@ const (
 )
 
 type CustomerProfile struct {
-	ID           int        `json:""`
+	ID           int        `json:"-"`
 	CustomerID   int        `json:"customer_id" form:"customer_id"`
 	NIK          string     `json:"nik" form:"nik"`
 	FullName     string     `json:"full_name" form:"full_name"`
 	LegalName    string     `json:"legal_name" form:"legal_name"`
 	PlaceOfBirth string     `json:"place_of_birth" form:"place_of_birth"`
-	DateOfBirth  time.Time  `json:"date_of_birth" form:"date_of_birth"`
-	Salary       int        `json:"salary" form:"salary"`
+	DateOfBirth  string     `json:"date_of_birth" form:"date_of_birth"`
+	Salary       float32    `json:"salary" form:"salary"`
 	KtpImage     string     `json:"ktp_image" form:"ktp_image"`
 	SelfieImage  string     `json:"selfie_image" form:"selfie_image"`
 	CreatedAt    time.Time  `json:"created_at"`

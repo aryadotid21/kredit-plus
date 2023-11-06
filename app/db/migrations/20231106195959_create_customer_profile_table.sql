@@ -3,7 +3,7 @@
 
 CREATE TABLE customer_profiles (
     id serial PRIMARY KEY,
-    customer_id integer NOT NULL REFERENCES customers(id),
+    customer_id integer UNIQUE NOT NULL REFERENCES customers(id),
     NIK varchar(20),
     full_name varchar(255),
     legal_name varchar(255),
