@@ -19,7 +19,6 @@ func (u CustomerController) CreateCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -27,7 +26,6 @@ func (u CustomerController) CreateCustomerProfile(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
@@ -86,7 +84,6 @@ func (u CustomerController) GetCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -94,7 +91,6 @@ func (u CustomerController) GetCustomerProfile(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
@@ -126,7 +122,6 @@ func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -134,7 +129,6 @@ func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
@@ -217,7 +211,6 @@ func (u CustomerController) DeleteCustomerProfile(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -225,7 +218,6 @@ func (u CustomerController) DeleteCustomerProfile(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)

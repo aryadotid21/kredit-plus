@@ -20,7 +20,6 @@ func (u CustomerController) CreateCustomerLimit(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -28,7 +27,6 @@ func (u CustomerController) CreateCustomerLimit(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
@@ -74,7 +72,6 @@ func (u CustomerController) GetCustomerLimits(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -82,7 +79,6 @@ func (u CustomerController) GetCustomerLimits(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
@@ -128,7 +124,6 @@ func (u CustomerController) GetCustomerLimit(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -136,7 +131,6 @@ func (u CustomerController) GetCustomerLimit(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
@@ -168,14 +162,12 @@ func (u CustomerController) UpdateCustomerLimit(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the id param from the url
 	id := c.Param("id")
 	if id == "" {
 		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
 		return
 	}
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -183,7 +175,6 @@ func (u CustomerController) UpdateCustomerLimit(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
@@ -243,14 +234,12 @@ func (u CustomerController) DeleteCustomerLimit(c *gin.Context) {
 	ctx := correlation.WithReqContext(c)
 	log := logger.Logger(ctx)
 
-	// Get the id param from the url
 	id := c.Param("id")
 	if id == "" {
 		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, errors.New(constants.INVALID_INPUT))
 		return
 	}
 
-	// Get the user from the context
 	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
 	if !exist {
 		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
@@ -258,7 +247,6 @@ func (u CustomerController) DeleteCustomerLimit(c *gin.Context) {
 		return
 	}
 
-	// Get the user from the database
 	user, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
 	if err != nil {
 		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
