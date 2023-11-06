@@ -1,0 +1,37 @@
+.
+├── Dockerfile                          ──────────────> Docker File, to spin up the docker-compose.yml file
+├── Makefile                            ──────────────> Here write down the basic shortcode to use it, like make down (stop the project), make start (start the project), make migrations (create a new migration file)
+├── README.md                           ──────────────> Introduction of the project
+├── app                                 ──────────────> Main root directory of the project
+│   ├── api                             ──────────────> Defined your API layer
+│   │   ├── middleware                  ──────────────> Defined middleware of the project
+│   └── server                          ──────────────> Load up the API router
+│       ├── router.go                   ──────────────> Load up the routes
+│       └── routes.go                   ──────────────> Define your routes
+│   ├── constants                       ──────────────> All constants that are used in a project defined here
+│   │   ├── constants.go                ──────────────> Defined all constants here
+│   │   └── error_message.go            ──────────────> Defined all error messages here
+|   |   └── success_message.go          ──────────────> Defined all success messages here
+│   ├── controller                      ──────────────> Defined your routes controller here
+│   │   ├── healthcheck                 
+│   │   └── response.go                 ──────────────> Defined your response here
+│   ├── db                              ──────────────> Defined your data services layer
+│   │   ├── db.go                       ──────────────> Spin up your DB and run the migrations on DB
+│   │   ├── dto                         ──────────────> Defined your DB table schemas
+│   │   ├── migrations                  ──────────────> Define your Up and down migration that is used by the project to run the migration as defined in SQL files
+│   │   └── repository                  ──────────────> Defined your data services classes here
+│   └── service                         ──────────────> Here it defines the basic services used by the projects
+│       ├── correlation                 ──────────────> It's used to give the correlation ID on every API request, which helps us to track down the RCA of each API
+│       ├── dto                         ──────────────> API request response models defined here
+│       │   ├── request
+│       │   └── response
+│       ├── logger                      ──────────────> Defined your logger here
+│       └── util                        ──────────────> Define basic functions that are used by the whole project like hashing, time conversion, etc
+├── config                              ──────────────> Load up the configuration from the env file
+│   └── config.go
+├── docker-compose.yml                  ──────────────> Docker Compose File, loading up APP and DB
+├── go.mod                              ──────────────> Load up all dependencies required in a project
+├── go.sum                              ──────────────> Load up cryptographic hashes of the exact version of dependencies required in a project
+├── main.go                             ──────────────> Heart of the project, it all starts from here
+├── project-arc.txt
+└── project-architecture.jpg
