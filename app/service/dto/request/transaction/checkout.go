@@ -11,7 +11,7 @@ type CheckoutRequest struct {
 	AssetName         string  `json:"asset_name" form:"asset_name"`
 	AssetType         string  `json:"asset_type" form:"asset_type"`
 	AssetDescription  string  `json:"asset_description" form:"asset_description"`
-	AssetPrice        int     `json:"asset_price" form:"asset_price"`
+	AssetPrice        float32 `json:"asset_price" form:"asset_price"`
 }
 
 func (u *CheckoutRequest) Validate() error {

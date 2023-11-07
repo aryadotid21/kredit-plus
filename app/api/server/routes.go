@@ -2,9 +2,10 @@ package server
 
 const (
 	// General
-	API  = "/api"
-	UUID = "/:uuid"
-	ID   = "/:id"
+	API    = "/api"
+	UUID   = "/:uuid"
+	ID     = "/:id"
+	DETAIL = "/detail"
 
 	// Auth
 	AUTH          = "/auth"

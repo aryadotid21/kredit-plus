@@ -22,7 +22,7 @@ type Asset struct {
 	Name        string     `json:"name" form:"name"`
 	Type        string     `json:"type" form:"type"`
 	Description string     `json:"description" form:"description"`
-	Price       int        `json:"price" form:"price"`
+	Price       float32    `json:"price" form:"price"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
 }

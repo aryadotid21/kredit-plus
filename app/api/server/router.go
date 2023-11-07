@@ -168,6 +168,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 
 			transaction.POST("", transactionController.CreateTransaction)
 			transaction.GET("", transactionController.GetTransactions)
+			transaction.GET(DETAIL, transactionController.GetTransactionsDetail)
 			transaction.GET(UUID, transactionController.GetTransaction)
 			transaction.PATCH(UUID, transactionController.UpdateTransaction)
 			transaction.DELETE(UUID, transactionController.DeleteTransaction)

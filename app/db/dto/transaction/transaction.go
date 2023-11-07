@@ -25,7 +25,7 @@ const (
 )
 
 type Transaction struct {
-	ID                int        `json:"id"`
+	ID                int        `json:"-"`
 	UUID              uuid.UUID  `json:"uuid" form:"uuid"`
 	CustomerID        int        `json:"customer_id" form:"customer_id"`
 	AssetID           *int       `json:"asset_id" form:"asset_id"`

@@ -21,7 +21,8 @@ import (
 
 	"kredit-plus/app/service/correlation"
 	"kredit-plus/app/service/dto/request"
-	"kredit-plus/app/service/dto/request/transaction"
+	transactionRequest "kredit-plus/app/service/dto/request/transaction"
+	transactionResponse "kredit-plus/app/service/dto/response/transaction"
 	"kredit-plus/app/service/logger"
 	"time"
 
@@ -34,6 +35,7 @@ type ITransactionController interface {
 
 	CreateTransaction(c *gin.Context)
 	GetTransactions(c *gin.Context)
+	GetTransactionsDetail(c *gin.Context)
 	GetTransaction(c *gin.Context)
 	UpdateTransaction(c *gin.Context)
 	DeleteTransaction(c *gin.Context)
@@ -76,7 +78,7 @@ func (u TransactionController) Checkout(c *gin.Context) {
 	}
 
 	// Parse and validate the request body
-	var dataFromBody transaction.CheckoutRequest
+	var dataFromBody transactionRequest.CheckoutRequest
 	if err := c.BindJSON(&dataFromBody); err != nil {
 		log.Error(constants.BAD_REQUEST, err)
 		controller.RespondWithError(c, http.StatusBadRequest, constants.BAD_REQUEST, err)
@@ -323,6 +325,87 @@ func (u TransactionController) GetTransactions(c *gin.Context) {
 	}
 
 	controller.RespondWithSuccess(c, http.StatusOK, constants.GET_SUCCESSFULLY, transactions, &paginationResponse)
+}
+
+func (u TransactionController) GetTransactionsDetail(c *gin.Context) {
+	ctx := correlation.WithReqContext(c)
+	log := logger.Logger(ctx)
+
+	response := []transactionResponse.TransactionDetailResponse{}
+
+	var pagination request.Pagination
+
+	if err := c.ShouldBindQuery(&pagination); err != nil {
+		errorMsg := fmt.Sprintf("%s: %v", constants.BAD_REQUEST, err)
+		log.Error(errorMsg)
+		controller.RespondWithError(c, http.StatusBadRequest, errorMsg, err)
+		return
+	}
+
+	pagination.Validate()
+
+	f := map[string]interface{}{}
+
+	if c.Query(transactionDBModels.COLUMN_UUID) != "" {
+		f[transactionDBModels.COLUMN_UUID] = c.Query(transactionDBModels.COLUMN_UUID)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_CUSTOMER_ID) != "" {
+		f[transactionDBModels.COLUMN_CUSTOMER_ID] = c.Query(transactionDBModels.COLUMN_CUSTOMER_ID)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_ASSET_ID) != "" {
+		f[transactionDBModels.COLUMN_ASSET_ID] = c.Query(transactionDBModels.COLUMN_ASSET_ID)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_CONTRACT_NUMBER) != "" {
+		f[transactionDBModels.COLUMN_CONTRACT_NUMBER] = c.Query(transactionDBModels.COLUMN_CONTRACT_NUMBER)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_CONTRACT_NUMBER) != "" {
+		f[transactionDBModels.COLUMN_CONTRACT_NUMBER] = c.Query(transactionDBModels.COLUMN_CONTRACT_NUMBER)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_OTR_AMOUNT) != "" {
+		f[transactionDBModels.COLUMN_OTR_AMOUNT] = c.Query(transactionDBModels.COLUMN_OTR_AMOUNT)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_ADMIN_FEE) != "" {
+		f[transactionDBModels.COLUMN_ADMIN_FEE] = c.Query(transactionDBModels.COLUMN_ADMIN_FEE)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_INSTALLMENT_AMOUNT) != "" {
+		f[transactionDBModels.COLUMN_INSTALLMENT_AMOUNT] = c.Query(transactionDBModels.COLUMN_INSTALLMENT_AMOUNT)
+	}
+
+	if c.Query(transactionDBModels.COLUMN_INSTALLMENT_PERIOD) != "" {
+		f[transactionDBModels.COLUMN_INSTALLMENT_PERIOD] = c.Query(transactionDBModels.COLUMN_INSTALLMENT_PERIOD)
+	}
+
+	transactions, paginationResponse, err := u.TransactionDBClient.List(ctx, pagination, f)
+	if err != nil {
+		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
+		log.Error(errorMsg)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	for _, transaction := range transactions {
+		asset, err := u.AssetDBClient.Get(ctx, map[string]interface{}{assetDBModels.COLUMN_ID: transaction.AssetID})
+		if err != nil {
+			errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
+			log.Error(errorMsg)
+			controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+			return
+		}
+
+		response = append(response, transactionResponse.TransactionDetailResponse{
+			Transaction: transaction,
+			Asset:       asset,
+		})
+	}
+
+	controller.RespondWithSuccess(c, http.StatusOK, constants.GET_SUCCESSFULLY, response, &paginationResponse)
 }
 
 func (u TransactionController) GetTransaction(c *gin.Context) {
