@@ -6,6 +6,7 @@ import (
 	"kredit-plus/app/constants"
 	"kredit-plus/app/controller"
 	"net/http"
+	"sync"
 
 	transactionDBModels "kredit-plus/app/db/dto/transaction"
 	transactionDB "kredit-plus/app/db/repository/transaction"
@@ -175,36 +176,60 @@ func (u TransactionController) Checkout(c *gin.Context) {
 		return
 	}
 
-	// Update the customer's limit
-	patcher := map[string]interface{}{
-		customerLimitDBModels.COLUMN_LIMIT_AMOUNT: customerLimit.LimitAmount - dataFromBody.InstallmentAmount,
-		customerLimitDBModels.COLUMN_UPDATED_AT:   time.Now(),
-	}
+	// Create channels to communicate errors
+	customerLimitErrCh := make(chan error)
+	transactionUpdateErrCh := make(chan error)
 
-	filter := map[string]interface{}{
-		customerLimitDBModels.COLUMN_CUSTOMER_ID: user.ID,
-		customerLimitDBModels.COLUMN_TENOR:       dataFromBody.InstallmentPeriod,
-	}
+	// Update the customer's limit in a goroutine
+	go func() {
+		patcher := map[string]interface{}{
+			customerLimitDBModels.COLUMN_LIMIT_AMOUNT: customerLimit.LimitAmount - dataFromBody.InstallmentAmount,
+			customerLimitDBModels.COLUMN_UPDATED_AT:   time.Now(),
+		}
 
-	if err := u.CustomerLimitDBClient.Update(ctx, filter, patcher); err != nil {
-		log.Error(constants.INTERNAL_SERVER_ERROR, err)
-		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		filter := map[string]interface{}{
+			customerLimitDBModels.COLUMN_CUSTOMER_ID: user.ID,
+			customerLimitDBModels.COLUMN_TENOR:       dataFromBody.InstallmentPeriod,
+		}
+
+		if err := u.CustomerLimitDBClient.Update(ctx, filter, patcher); err != nil {
+			customerLimitErrCh <- err
+		} else {
+			customerLimitErrCh <- nil
+		}
+	}()
+
+	// Update the transaction with the asset's ID in a goroutine
+	go func() {
+		patcher := map[string]interface{}{
+			transactionDBModels.COLUMN_ASSET_ID:   asset.ID,
+			transactionDBModels.COLUMN_UPDATED_AT: time.Now(),
+		}
+
+		filter := map[string]interface{}{
+			transactionDBModels.COLUMN_UUID: transaction.UUID,
+		}
+
+		if err := u.TransactionDBClient.Update(ctx, filter, patcher); err != nil {
+			transactionUpdateErrCh <- err
+		} else {
+			transactionUpdateErrCh <- nil
+		}
+	}()
+
+	// Wait for both goroutines to finish and check for errors
+	customerLimitErr := <-customerLimitErrCh
+	transactionUpdateErr := <-transactionUpdateErrCh
+
+	if customerLimitErr != nil {
+		log.Error(constants.INTERNAL_SERVER_ERROR, customerLimitErr)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, customerLimitErr)
 		return
 	}
 
-	// Update the transaction with the asset's ID
-	patcher = map[string]interface{}{
-		transactionDBModels.COLUMN_ASSET_ID:   asset.ID,
-		transactionDBModels.COLUMN_UPDATED_AT: time.Now(),
-	}
-
-	filter = map[string]interface{}{
-		transactionDBModels.COLUMN_UUID: transaction.UUID,
-	}
-
-	if err := u.TransactionDBClient.Update(ctx, filter, patcher); err != nil {
-		log.Error(constants.INTERNAL_SERVER_ERROR, err)
-		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+	if transactionUpdateErr != nil {
+		log.Error(constants.INTERNAL_SERVER_ERROR, transactionUpdateErr)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, transactionUpdateErr)
 		return
 	}
 
@@ -390,18 +415,35 @@ func (u TransactionController) GetTransactionsDetail(c *gin.Context) {
 		return
 	}
 
-	for _, transaction := range transactions {
-		asset, err := u.AssetDBClient.Get(ctx, map[string]interface{}{assetDBModels.COLUMN_ID: transaction.AssetID})
-		if err != nil {
-			errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
-			log.Error(errorMsg)
-			controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
-			return
-		}
+	assets := []assetDBModels.Asset{}
+	var wg sync.WaitGroup
 
+	for _, transaction := range transactions {
+		wg.Add(1)
+		go func(transaction transactionDBModels.Transaction) {
+			defer wg.Done()
+
+			if transaction.AssetID == nil {
+				assets = append(assets, assetDBModels.Asset{})
+			} else {
+				asset, err := u.AssetDBClient.Get(ctx, map[string]interface{}{assetDBModels.COLUMN_ID: *transaction.AssetID})
+				if err != nil {
+					errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
+					log.Error(errorMsg)
+					controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+					return
+				}
+
+				assets = append(assets, asset)
+			}
+		}(transaction)
+	}
+	wg.Wait()
+
+	for i, transaction := range transactions {
 		response = append(response, transactionResponse.TransactionDetailResponse{
 			Transaction: transaction,
-			Asset:       asset,
+			Asset:       assets[i],
 		})
 	}
 
