@@ -51,6 +51,7 @@ type ICustomerController interface {
 	Signin(c *gin.Context)
 	Signout(c *gin.Context)
 	RefreshToken(c *gin.Context)
+	Profile(c *gin.Context)
 }
 
 type CustomerController struct {
