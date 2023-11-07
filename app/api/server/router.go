@@ -139,6 +139,7 @@ func NewRouter(ctx context.Context, dbConnection *db.DBService) *gin.Engine {
 
 			customer.Use(auth.Authenticated(JWT, customerTokenDBClient))
 
+			customer.GET(PROFILE+DETAIL, customerController.Profile)
 			customer.POST(PROFILE, customerController.CreateCustomerProfile)
 			customer.GET(PROFILE, customerController.GetCustomerProfile)
 			customer.PATCH(PROFILE, customerController.UpdateCustomerProfile)

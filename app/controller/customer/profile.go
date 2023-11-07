@@ -6,8 +6,13 @@ import (
 	"kredit-plus/app/constants"
 	"kredit-plus/app/controller"
 	customerDBModels "kredit-plus/app/db/dto/customer"
+	customerLimitDBModels "kredit-plus/app/db/dto/customer_limit"
 	customerProfileDBModels "kredit-plus/app/db/dto/customer_profile"
+	customerTokenDBModels "kredit-plus/app/db/dto/customer_token"
+
 	"kredit-plus/app/service/correlation"
+	"kredit-plus/app/service/dto/request"
+	customerResponse "kredit-plus/app/service/dto/response/customer"
 	"kredit-plus/app/service/logger"
 	"net/http"
 	"time"
@@ -116,6 +121,84 @@ func (u CustomerController) GetCustomerProfile(c *gin.Context) {
 	}
 
 	controller.RespondWithSuccess(c, http.StatusOK, constants.GET_SUCCESSFULLY, r, nil)
+}
+
+func (u CustomerController) Profile(c *gin.Context) {
+	ctx := correlation.WithReqContext(c)
+	log := logger.Logger(ctx)
+
+	response := customerResponse.CustomerProfileDetail{}
+
+	userUUID, exist := c.Get(constants.CTK_CLAIM_KEY.String())
+	if !exist {
+		log.Error(constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		controller.RespondWithError(c, http.StatusUnauthorized, constants.UNAUTHORIZED_ACCESS, errors.New(constants.UNAUTHORIZED_ACCESS))
+		return
+	}
+
+	customer, err := u.CustomerDBClient.Get(ctx, map[string]interface{}{customerDBModels.COLUMN_UUID: userUUID})
+	if err != nil {
+		log.Errorf(constants.INTERNAL_SERVER_ERROR, err)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	response.Customer = customer
+
+	filter := map[string]interface{}{
+		customerProfileDBModels.COLUMN_CUSTOMER_ID: customer.ID,
+	}
+
+	customerProfile, err := u.CustomerProfileDBClient.Get(ctx, filter)
+	if err != nil {
+		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
+		log.Error(errorMsg)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	if customerProfile.ID == 0 {
+		controller.RespondWithError(c, http.StatusNotFound, constants.NOT_FOUND, errors.New(constants.RESOURCE_NOT_FOUND))
+		return
+	}
+
+	response.Profile = customerProfile
+
+	filter = map[string]interface{}{
+		customerTokenDBModels.COLUMN_CUSTOMER_ID: customer.ID,
+	}
+
+	customerToken, err := u.CustomerTokenDBClient.Get(ctx, filter)
+	if err != nil {
+		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
+		log.Error(errorMsg)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	response.Token = customerToken
+
+	filter = map[string]interface{}{
+		customerLimitDBModels.COLUMN_CUSTOMER_ID: customer.ID,
+	}
+
+	p := request.Pagination{
+		GetAllData: true,
+	}
+
+	p.Validate()
+
+	customerLimit, _, err := u.CustomerLimitDBClient.List(ctx, p, filter)
+	if err != nil {
+		errorMsg := fmt.Sprintf("%s: %v", constants.INTERNAL_SERVER_ERROR, err)
+		log.Error(errorMsg)
+		controller.RespondWithError(c, http.StatusInternalServerError, constants.INTERNAL_SERVER_ERROR, err)
+		return
+	}
+
+	response.Limit = customerLimit
+
+	controller.RespondWithSuccess(c, http.StatusOK, constants.GET_SUCCESSFULLY, response, nil)
 }
 
 func (u CustomerController) UpdateCustomerProfile(c *gin.Context) {
